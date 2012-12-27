@@ -10,7 +10,12 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
 
-public class StartupActivity extends Activity implements LocationListener, ExternalStorageObserver.OnUpdateStorageListener {
+import java.io.IOException;
+import java.util.Calendar;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+public class StartupActivity extends Activity implements LocationListener {
     final private int METERS = 1;
     final private int TIME = 400;
 
@@ -38,7 +43,6 @@ public class StartupActivity extends Activity implements LocationListener, Exter
 
     private void initStorageObserver() {
         storageObserver = new ExternalStorageObserver(this);
-        storageObserver.setOnUpdateStorageListener(this);
         storageObserver.startWatching();
     }
 
@@ -60,13 +64,23 @@ public class StartupActivity extends Activity implements LocationListener, Exter
             notifyUI("No location");
             return;
         }
+
         String latitude = String.valueOf(location.getLatitude());
         String longitude = String.valueOf(location.getLongitude());
 
         String format = "latitude: %s || longitude: %s";
         notifyUI(String.format(format, latitude, longitude));
 
-        storageObserver.updateExternalStorageState();
+        LinkedHashMap<String,String> data = new LinkedHashMap<String, String>();
+        data.put("latitude", latitude);
+        data.put("longitude", longitude);
+        data.put("time", Calendar.getInstance().toString());
+
+        try {
+            sendLocationData(data);
+        } catch (IOException e) {
+            notifyUI(e.getMessage());
+        }
     }
 
     @Override
@@ -88,12 +102,14 @@ public class StartupActivity extends Activity implements LocationListener, Exter
     @Override
     public void onPause() {
         super.onPause();
+        storageObserver.stopWatching();
         locationManager.removeUpdates(this);
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        storageObserver.startWatching();
         locationManager.requestLocationUpdates(provider, TIME, METERS, this);
     }
 
@@ -103,8 +119,12 @@ public class StartupActivity extends Activity implements LocationListener, Exter
         onLocationChanged(location);
     }
 
-    @Override
-    public void onUpdateStorage(boolean storageAvailable) {
 
+    private void sendLocationData(final Map<String,String> data) throws IOException {
+        storageObserver.updateExternalStorageState();
+        if(storageObserver.available()){
+            LocationDataSender sender = new LocationDataSender(this);
+            sender.send(data);
+        }
     }
 }

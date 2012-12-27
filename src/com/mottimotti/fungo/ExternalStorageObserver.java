@@ -13,7 +13,6 @@ public class ExternalStorageObserver {
     boolean externalStorageAvailable = false;
     boolean externalStorageWriteable = false;
     private Context context;
-    private OnUpdateStorageListener updateListener;
 
     public ExternalStorageObserver(Context context) {
         this.context = context;
@@ -21,22 +20,15 @@ public class ExternalStorageObserver {
 
     public void updateExternalStorageState() {
         String state = Environment.getExternalStorageState();
-        Toast toast = Toast.makeText(context, "", Toast.LENGTH_LONG);
 
         if (Environment.MEDIA_MOUNTED.equals(state)) {
             externalStorageAvailable = externalStorageWriteable = true;
-            toast.setText("MEDIA_MOUNTED !");
         } else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
             externalStorageAvailable = true;
             externalStorageWriteable = false;
-            toast.setText("MEDIA_MOUNTED_READ_ONLY !");
         } else {
             externalStorageAvailable = externalStorageWriteable = false;
-            toast.setText("MEDIA_UNREACHABLE !");
         }
-        toast.show();
-
-        updateListener.onUpdateStorage(externalStorageAvailable && externalStorageWriteable);
     }
 
     public void startWatching() {
@@ -58,11 +50,7 @@ public class ExternalStorageObserver {
         context.unregisterReceiver(mExternalStorageReceiver);
     }
 
-    public void setOnUpdateStorageListener(OnUpdateStorageListener listener) {
-        this.updateListener = listener;
-    }
-
-    public interface OnUpdateStorageListener {
-        public void onUpdateStorage(boolean storageAvailable);
+    public boolean available() {
+        return (externalStorageAvailable && externalStorageWriteable);
     }
 }
